@@ -1,0 +1,465 @@
+Data Analysis with R - Final Project
+====================================
+by Samit Chaudhuri
+
+## Chemical Analysis of Red and White Wines
+
+This project explores relationship between quality and chemical properties of
+wines. Wine quality is based on subjective ratings by human experts. Chemical
+properties are determined by objective measurements. Two tidy data sets of 1599
+red wines and 4898 white wines, each with 11 input variables and 1 output
+variables are used.
+
+Additionally some models are presented to predict the quality of wines from
+their chemical characteristics.
+
+### Load data and necessary packages
+```{r Load Red Wine Data}
+redWines <- read.csv("wineQualityReds.csv")
+redWines <- subset(redWines, select = -c(X))
+str(redWines)
+
+library(ggplot2)
+library(GGally)
+library(scales)
+library(memisc)
+library(gridExtra)
+qualityLevel = function(quality) {
+  level = as.numeric(cut(quality, breaks=c(0, 4, 5, 6, 10)))
+  level
+  return(level)
+}
+rpalette = 5
+wpalette = 1
+ptfont = 10           # font size of plot title
+atfont = 9            # font size of axis title
+ltfont = 8            # font size of legend title
+```
+
+The red wine data has one dependent variable, quality, that gives each wine a
+score between 0 and 10. There are 11 independent variables, some of with may be
+correlated.
+
+```{r Quality histogram}
+```
+
+Let us first find the distribution wine quality in the sample data set. Then we
+use the basic histogram to categorize quality scores into 4 levels: poor, good,
+fine, and excellent. This new factor variable, quality.label, is computed by
+cutting the quality number into 4 ranges (0,3], (0,5], (5,6], (6,10]. Now we can
+add some color to the previous histogram.
+
+```{r, out.width = '\\maxwidth'}
+ptfont = 10           # font size of plot title
+atfont = 9            # font size of axis title
+ltfont = 8            # font size of legend title
+rqhist1 <- ggplot(data=redWines, aes(x=quality)) +
+	ggtitle("Red Wine Quality") +     # Plot title text
+	xlab("Wine Quality") + ylab("Count") +  # Axis label text
+    theme_bw() +                                          # Theme elements
+    theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+         axis.title=element_text(size=atfont, face="bold")) +
+    scale_x_continuous(limits=c(3,9), breaks = seq(3, 9, 1)) + 
+	geom_histogram(binwidth = 1)
+redWines$quality.label = cut(redWines$quality, breaks=c(0, 4, 5, 6, 10), 
+    labels=c("poor", "average", "fine", "excellent")) 
+rqhist2 <- ggplot(data=redWines, aes(x=quality, fill=quality.label)) +
+    ggtitle("Red Wine Categories") +     # Plot title text
+	xlab("Wine Quality") + ylab("Count") +  # Axis label text
+    scale_fill_brewer(type = 'div', palette = rpalette, # Legend title/color
+         guide=guide_legend(reverse=TRUE, title="Quality Rating")) +
+    theme_bw() +                                          # Theme elements
+    theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+        axis.title=element_text(size=atfont, face="bold"),    # Axis font 
+        legend.title=element_blank(),  
+        legend.position=c(.9,.7)) +                       # Legend position
+    scale_x_continuous(limits=c(3,9)) + 
+	geom_histogram(binwidth = 1)
+grid.arrange(rqhist1, rqhist2, ncol=2)
+```
+
+So we have a decent categorization of excellent, fine, good, and poor red wines.
+
+In the beginning, we don't really know what causes a wine to be excellent or
+poor. So we want the entire data set speak for itself by plotting many variables
+all at once. Hopefully the plots will draw our attention to a smaller set of
+variables and relationships.
+
+```{r, out.width = '\\maxwidth'}
+ggpairs(redWines, 
+		params = c(color=I('red3'), shape = I('.'), corSize=8, outlier.shape = I('.')),
+		title = "Red Wines Scatter Plot Matrix")
+```
+
+Some of the dependent variables are highly correlated. For example, citric acid
+is correlated with both fixed and volatile acidity. Density is correlated with
+both fixed acidity and alcohol content.
+ 
+The quality score is most correlated with alcohol content and volatile acidity,
+but it does not correlate much with anything else. On the other hand, the box
+plots of the quality label (excellent, fine, good, poor) show a dependency on
+fix and volatile acidity; excellent wines have higher mean fixed acidity and
+lower mean volatile acidity.
+
+We will closely examine the effects of alcohol and acidity (both fixed and
+volatile) on quality score and quality label with grouped density plots.
+
+```{r, out.width = '\\maxwidth'}
+ptfont = 10           # font size of plot title
+atfont = 9            # font size of axis title
+ltfont = 8            # font size of legend title
+alDensity <- ggplot(data=redWines, aes(x=alcohol, color=quality.label)) +
+	  ggtitle("Quality vs Alcohol") + # Plot title text
+	  xlab("Alcohol Content") + ylab("Count") +  
+      scale_color_brewer(type = 'div', palette = rpalette, # Legend title/color
+          guide=guide_legend(reverse=TRUE)) +
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+           legend.title=element_blank(), 
+           legend.position=c(.85,.6)) +
+      geom_density() 
+acidDensity <- ggplot(data=redWines) +
+	  ylab("Count") +  
+      scale_color_brewer(type = 'div', palette = rpalette, # Legend title/color
+          guide=guide_legend(reverse=TRUE)) +
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(face="bold"),   # Axis font 
+           legend.title=element_blank(), 
+           legend.position=c(.85,.6))
+vaDensity <- acidDensity + 
+    geom_density(aes(x=volatile.acidity, color=quality.label)) + 
+    ggtitle("Quality vs Volatile Acidity") +  # Plot title 
+    xlab("Volatile Acidity") 
+faDensity <- acidDensity + 
+    geom_density(aes(x=fixed.acidity, color = quality.label)) + 
+    ggtitle("Quality vs Fixed Acidity") +     # Plot title 
+    xlab("Fixed Acidity") 
+grid.arrange(alDensity, vaDensity, faDensity, nrow=2, ncol=2)
+```
+
+The density plots of different quality levels are shifted with respect to each
+other. The alcohol density plots shift toward right with improving
+quality. Better wines tend of have higher alcohol. The fixed acidity plots also
+shift toward right with improving quality, while volatile acidity density plots
+shift toward left with improving quality. Better wines tend of have higher fixed
+acidity and lower volatile acidity.
+
+These trends can also be observed with box plots. 
+
+```{r, out.width = '\\maxwidth'}
+ptfont = 10           # font size of plot title
+atfont = 9            # font size of axis title
+ltfont = 8            # font size of legend title
+albox <- ggplot(data=redWines, aes(x=quality.label, y=alcohol,
+	   color=quality.label)) +
+	  ggtitle("Alcohol vs Quality") +     # Plot title text
+	  xlab("Qality Label") + ylab("Alcohol Stats") +  # Axis label text
+      scale_color_brewer(type = 'div', palette = rpalette) +# Legend title/color
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+           legend.title=element_text(size=ltfont, face="bold"), # Legend font 
+           legend.position="none") +                      # Legend position
+      geom_boxplot() 
+abox <- ggplot(data=redWines, aes(x=quality.label, color=quality.label)) +
+	       # Plot title text
+	  xlab("Qality Label") +   # Axis label text
+      scale_color_brewer(type = 'div', palette = rpalette)+ # Legend color
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+           legend.title=element_text(size=ltfont, face="bold"), # Legend font 
+           legend.position="none")                        # Legend position
+par(mfrow=c(1,2))
+vabox <- abox + geom_boxplot(aes(y=volatile.acidity)) + 
+	 ggtitle("Volatile Acidity vs Quality") +
+     ylab("Volatile Acidity Stats")
+fabox <- abox + geom_boxplot(aes(y=fixed.acidity)) +
+	 ggtitle("Fixed Acidity vs Quality") +
+     ylab("Fixed Acidity Stats")
+grid.arrange(albox, vabox, fabox, nrow=2, ncol=2)
+```
+
+Now let's observe the joint effect of volatile acidity and alcohol content on
+quality with a scatter plot. Side-by-side, we also plot the joint effect of
+fixed acidity and alcohol content.
+
+```{r}
+alascatter <- ggplot(data=redWines, aes(x=alcohol, 
+      group=quality.label, fill=quality.label, color=quality.label)) +
+      scale_x_continuous(limits=c(8, 15), breaks = seq(8, 15, .5)) +
+	  xlab("Alcohol Percentage") + # Axis label text
+      scale_color_brewer(type = 'div', palette = rpalette, 
+          guide=guide_legend(reverse=TRUE)) +              # Legend color
+      scale_fill_brewer(guide = FALSE) +
+      theme_bw() +                                         # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),  # Title font 
+           axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+           legend.title=element_blank(),                   # Legend font 
+           legend.position=c(.85,.6))                      # Legend position
+alvascatter <- alascatter + 
+	  ggtitle("Volatile Acidity and Alcohol Content of Red Wines") + 
+      ylab("Volatile Acidity") +  
+      scale_y_continuous(limits=c(0.1, 1.6), breaks = seq(0.1, 1.6, .1)) +
+      geom_point(aes(y=volatile.acidity, size=3))
+alfascatter <- alascatter + 
+	  ggtitle("Fixed Acidity and Alcohol Content of Red Wines") + 
+      ylab("Fixed Acidity") +  
+      scale_y_continuous(limits=c(3, 16), breaks = seq(3, 16, 1)) +
+      geom_point(aes(y=fixed.acidity, size=3))
+alvascatter
+alfascatter
+```
+
+Red wine quality is definitely good when alcohol content is above 12 and
+volatile acidity is below 0.5. Even when alcohol content is not quite as high,
+one can find good wines as with low volatile acidity, or with high fixed
+acidity. Similarly when volatile acidity is not quite as low, or fixed acidity
+is not quite as high, one can find good wines with high alcohol content. In
+other words, as long has either alcohol content is above 12, or volatile acidity
+is below 8 or fixed acidity is above 8, there is a good chance that the wine has
+good quality.
+
+### Linear Regression Model of Red Wine Quality
+
+First we start with a full linear regression model. 
+
+```{r Regression model}
+fulllm <- lm(data=redWines, quality ~ . - quality.label)
+summary(fulllm)
+```
+
+Now we select only the signficant variables, and then leave out collinear
+variables, citric.acid, pH, and density because they are highly correlated with
+acidity.
+
+```{r Reduced regression model}
+redWines$quality = as.numeric(redWines$quality)
+reducedlm <- lm(data=redWines, quality ~ . 
+    - citric.acid - density - pH - quality.label)
+summary(reducedlm)
+```
+
+The R-squared of the reduced model is not much different from the full
+model. The R-squared did not really improve with models built with other
+combinations of feature variables.
+
+### Prediction with Classification
+
+One possible reason that linear regression model of red-wine quality has low
+accuracy is that quality has a non-linear relation with other dependent
+variables. This prompts us to explore the relationship with a multi-class
+classification trees. Before building a CART model, we will split the data into
+a training set and a test set. CART model built on the training set will be used
+to predict quality on the test set. Then we will be able to measure the accuracy
+of the predictive capability of the model.
+
+```{r, out.width = '\\maxwidth'}
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(e1071)
+
+redWines$quality = factor(redWines$quality)
+
+# Split data into a train and test set
+index <- 1:nrow(redWines)
+set.seed(144)
+testSamples <- sample(index, trunc(length(index)/3))
+rqindex <- which(colnames(redWines)=="quality")
+rqlindex <- which(colnames(redWines)=="quality.label")
+redTest <- redWines[testSamples,-rqlindex]
+redTrain <- redWines[-testSamples,-rqlindex]
+
+# Create rpart model with cross validation
+rtr.control = trainControl(method = "cv", number = 5)
+cp.grid = expand.grid( .cp = (0:4)*0.001) 
+set.seed(144)
+rrpart.grid = train(data = redTrain, quality ~ ., method = "rpart", 
+    trControl = rtr.control, tuneGrid = cp.grid)
+rrpart.model = rrpart.grid$finalModel
+prp(rrpart.model, tweak=1.5)
+
+#Compute confusion matrix 
+rrpart.cpred <- predict(rrpart.model, newdata=redTest, type = "class" )
+rrpart.cmatrix <- table(pred = rrpart.cpred, true = redTest[,rqindex])
+rrpart.accuracy <- sum(diag(rrpart.cmatrix))/sum(rrpart.cmatrix)
+rrpart.cmatrix
+rrpart.accuracy
+```
+Indeed, the CART model can predict quality on the test set with 58% accuracy. 
+
+### Chemical Analysis of White Wines
+
+We now perform EDA on white wine quality and see if they follow a similar
+pattern as red wines.
+
+```{r, out.width = '\\maxwidth'}
+whiteWines <- read.csv("wineQualityWhites.csv")
+whiteWines <- subset(whiteWines, select = -c(X))
+str(whiteWines)
+
+whiteWines$quality.label = cut(whiteWines$quality, breaks=c(0, 4, 5, 6, 10), 
+    labels=c("poor", "average", "fine", "excellent"))
+wqhist1 <- ggplot(data=whiteWines, aes(x=quality)) +
+	  ggtitle("White Wine Quality") +     # Plot title text
+	  xlab("Wine Quality") + ylab("Count") +  # Axis label text
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(size=atfont, face="bold")) +
+      scale_x_continuous(limits=c(3,9), breaks = seq(3, 9, 1)) +  
+      geom_histogram(binwidth = 1)
+wqhist2 <- ggplot(data=whiteWines, aes(x=quality, fill=quality.label)) +
+	      ggtitle("White Wine Categories") +     # Plot title text
+	      xlab("Wine Quality") + ylab("Count") +  # Axis label text
+          scale_fill_brewer(type = 'div', palette = wpalette, 
+              guide=guide_legend(reverse=TRUE, title="Quality Rating")) +
+          theme_bw() +                                          # Theme elements
+          theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+             axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+             legend.title=element_text(size=ltfont, face="bold"), # Legend font 
+             legend.position=c(.9,.7)) +                      # Legend position
+		  scale_x_continuous(limits=c(3,9)) + 
+		  geom_histogram(binwidth = 1)
+grid.arrange(wqhist1, wqhist2, ncol=2)
+``` 
+Now plot all vriable pairs in the data set to identify noticable relationships.
+
+```{r, out.width = '\\maxwidth'}
+ggpairs(whiteWines, 
+		params = c(color=I('green3'), shape = I('.'), corSize=8, 
+            outlier.shape = I('.')),
+		title = "White Wines Scatter Plot Matrix")
+```
+
+Similar to quality or red wines, quality of white wines also relate to alcohol
+content and acidity. We can examine these relations with scatterplots.
+
+```{r}
+alascatter <- ggplot(data=whiteWines, aes(x=alcohol, 
+      group=quality.label, fill=quality.label, color=quality.label)) +
+      scale_x_continuous(limits=c(8, 15), breaks = seq(8, 15, .5)) +
+	  xlab("Alcohol Percentage") +  # Axis label text
+      scale_color_brewer(type = 'div', palette = wpalette,  # Legend color
+          guide=guide_legend(reverse=TRUE, title="Quality Rating")) +
+      scale_fill_brewer(guide = FALSE) +
+      theme_bw() +                                          # Theme elements
+      theme(title=element_text(size=ptfont, face="bold"),   # Title font 
+           axis.title=element_text(size=atfont, face="bold"),   # Axis font 
+           legend.title=element_text(size=ltfont, face="bold"), # Legend font 
+           legend.position=c(.85, .6))                    # Legend position
+alvascatter <- alascatter +
+      ylab("Volatile Acidity") +
+      scale_y_continuous(limits=c(0.08, 1.1), breaks = seq(0.08, 1.1, .1)) +
+	  ggtitle("Volatile Acidity and Alcohol Content of White Wines") + 
+      geom_point(aes(y=volatile.acidity), size=3)
+alfascatter <- alascatter +
+      ylab("Fixed Acidity") +
+      scale_y_continuous(limits=c(3, 16), breaks = seq(3, 16, 1)) +
+	  ggtitle("Fixed Acidity and Alcohol Content of White Wines") + 
+      geom_point(aes(y=fixed.acidity), size=3)
+alvascatter
+alfascatter
+```
+
+We can also create a classification tree for prediction. The model can predict
+quality on the test set with 52% accuracy. The CART is drawn below.
+
+```{r, out.width = '\\maxwidth'}
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(e1071)
+ 
+whiteWines$quality = factor(whiteWines$quality)
+
+# Split data into a train and test set
+index <- 1:nrow(whiteWines)
+set.seed(144)
+wtestSamples <- sample(index, trunc(length(index)/3))
+wqindex <- which(colnames(whiteWines)=="quality")
+wqlindex <- which(colnames(whiteWines)=="quality.label")
+whiteTest <- whiteWines[wtestSamples,-wqlindex]
+whiteTrain <- whiteWines[-wtestSamples,-wqlindex]
+
+# Create rpart model with cross validation
+wtr.control = trainControl(method = "cv", number = 5)
+wcp.grid = expand.grid( .cp = (0:4)*0.001) 
+set.seed(144)
+wrpart.grid = train(data = whiteTrain, quality ~ . - citric.acid - density 
+    - pH , method = "rpart", trControl = wtr.control, tuneGrid = cp.grid)
+
+
+wrpart.model = wrpart.grid$finalModel
+prp(wrpart.model)
+
+#Compute confusion matrix 
+wrpart.cpred <- predict(wrpart.model, whiteTest, type = "class" )
+wrpart.cmatrix <- table(pred = wrpart.cpred, true = whiteTest[,wqindex])
+wrpart.accuracy <- sum(diag(wrpart.cmatrix))/sum(wrpart.cmatrix)
+wrpart.cmatrix
+wrpart.accuracy
+```
+```
+
+### Interpretation of Model
+
+More alcohol and higher quality usually go together. In addition, volatile
+acidity degrades quality, probably because it induces a vinegary taste in the
+wine. Residual sugar levels are somewhat important probably because sweetness is
+often associated with freshness. Sulphates are important too, possibly because
+of its link to fermentation.
+
+### Final Plots and Summary
+
+This report explored the relationship betwen chemical properties of
+red and white wines, and their quality as identified by wine experts.
+Several plots including histograms, density plots, box plots, and
+scatter plots were used in the exploration to identify three major
+featurs impacting wine quality. They are alcohol content, fixed
+acidity, and volatile acidity. 
+
+This section reproduces a few of those plots. For example, the density
+plots of red wine quality over the three features are shown
+below. Detailed code for generating these plots have already been
+included in earlier sections.
+
+```{r, out.width = '\\maxwidth'}
+grid.arrange(alDensity, vaDensity, faDensity, nrow=2, ncol=2)
+```
+
+For white wines, the relationsip between quality, alcohol content and
+volatile acidity can be seen in the following scatter plot.
+
+
+```{r, out.width = '\\maxwidth'}
+alvascatter
+```
+
+We also built regression and classification models to predict wine
+quality from its chemical properties. The classification trees
+identified two additional significant features, namely residual sugar
+and sulphates. In the following we show the classification-tree for
+white wines. Detailed code for generating the model have already
+been included in an earlier section.
+
+```{r, out.width = '\\maxwidth'}
+prp(wrpart.model)
+```
+ 
+### Reflection
+
+In this report, we have explored the relationship betwen chemical properties of
+wines, such as fixed and volatile acidity, residual sugar, sulphates, alcohol
+content, and the quality of the wines as identified by the experts. We started
+with 11 different independent input variables, and showed that one can pick fine
+or excellent wines by focusing on 5 or fewer primary contributors. However, our
+prdictive models are not accurate enough (58% for red and 52 % for
+white). Despite providing interesting insights, they need to more refined 
+before providing reliable wine ratings. In addition to linear regression and
+CART models used in this project, there exists other advanced techniques for
+extracting features and building and training models that can be used to create
+a better predictive model for wine quality.
+
