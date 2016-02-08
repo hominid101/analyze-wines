@@ -31,7 +31,7 @@ qualityLevel = function(quality) {
 }
 rpalette = 5
 wpalette = 1
-ptfont = 10           # font size of plot title
+ptfont = 10           # font size of plot title 
 atfont = 9            # font size of axis title
 ltfont = 8            # font size of legend title
 ```
