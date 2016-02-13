@@ -1,10 +1,8 @@
-Data Analysis with R - Final Project
-====================================
-by Samit Chaudhuri
+## Exploratory Analysis of Chemical Data on Red and White Wines
 
-## Chemical Analysis of Red and White Wines
+#### Samit Chaudhuri
 
-This project explores relationship between quality and chemical properties of
+This article explores relationship between quality and chemical properties of
 wines. Wine quality is based on subjective ratings by human experts. Chemical
 properties are determined by objective measurements. Two tidy data sets of 1599
 red wines and 4898 white wines, each with 11 input variables and 1 output
