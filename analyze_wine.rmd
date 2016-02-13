@@ -15,6 +15,7 @@ their chemical characteristics.
 
 ### Load data and necessary packages
 ```{r Load Red Wine Data}
+setwd("~/personal/repos/github/analyze-wines/")
 redWines <- read.csv("wineQualityReds.csv")
 redWines <- subset(redWines, select = -c(X))
 str(redWines)
@@ -31,7 +32,7 @@ qualityLevel = function(quality) {
 }
 rpalette = 5
 wpalette = 1
-ptfont = 10           # font size of plot title 
+ptfont = 10           # font size of plot title
 atfont = 9            # font size of axis title
 ltfont = 8            # font size of legend title
 ```
@@ -86,9 +87,9 @@ all at once. Hopefully the plots will draw our attention to a smaller set of
 variables and relationships.
 
 ```{r, out.width = '\\maxwidth'}
-ggpairs(redWines, 
-		params = c(color=I('red3'), shape = I('.'), corSize=8, outlier.shape = I('.')),
-		title = "Red Wines Scatter Plot Matrix")
+#ggpairs(redWines, params = c(color=I('red3'), shape = I('.'), corSize = 8, outlier.shape = I('.')), title = "Red Wines Scatter Plot Matrix") + theme(axis.title.x=element_text(size=8,angle=45, vjust=1), axis.title.y=element_text(size=8,angle=45, hjust=1), axis.text=element_blank())
+#ggpairs(redWines, params = c(color=I('red3'), shape = I('.'), corSize = 8, outlier.shape = I('.')), title = "Red Wines Scatter Plot Matrix") + theme(size=8, axis.text=element_blank())
+ggpairs(redWines, params = c(color=I('red3')), title = "Red Wines Scatter Plot Matrix") + theme(axis.text=element_blank())
 ```
 
 Some of the dependent variables are highly correlated. For example, citric acid
@@ -328,10 +329,10 @@ grid.arrange(wqhist1, wqhist2, ncol=2)
 Now plot all vriable pairs in the data set to identify noticable relationships.
 
 ```{r, out.width = '\\maxwidth'}
-ggpairs(whiteWines, 
-		params = c(color=I('green3'), shape = I('.'), corSize=8, 
-            outlier.shape = I('.')),
-		title = "White Wines Scatter Plot Matrix")
+#ggpairs(whiteWines, 
+#		params = c(color=I('green3'), shape = I('.'), corSize=8, 
+#            outlier.shape = I('.')),
+#		title = "White Wines Scatter Plot Matrix")
 ```
 
 Similar to quality or red wines, quality of white wines also relate to alcohol
